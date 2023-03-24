@@ -1,0 +1,116 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - durationcheck
+    - errcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - exportloopref
+    - forcetypeassert
+    - funlen
+    - gci
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - gofmt
+    - goimports
+    - gomnd
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - ireturn
+    - maintidx
+    - makezero
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - paralleltest
+    - predeclared
+    - revive
+    - staticcheck
+    - stylecheck
+    - tenv
+    - thelper
+    - tparallel
+    - unconvert
+    - unused
+    - wastedassign
+    - whitespace
+    - wrapcheck
+
+linters-settings:
+  errcheck:
+    check-blank: true
+    check-type-assertions: true
+  funlen:
+    lines: 80
+    statements: 50
+  gci:
+    sections:
+      - standard
+      - default
+      - blank
+  goconst:
+    min-occurrences: 3
+  gocognit:
+    min-complexity: 20
+  gocyclo:
+    min-complexity: 20
+  gosec:
+    excludes:
+      - G101 # supposed to check for hardcoded creds but does a bad job. github has this built in anyway.
+      - G404 # checks that random number generator is always crypto/rand. unnecessary and noisy here.
+  gomnd:
+    settings:
+      mnd:
+        ignored-numbers: 0,1,2
+        ignored-functions: cobra.*,strconv.*
+  makezero:
+    always: true
+  nakedret:
+    max-func-lines: 0
+  nolintlint:
+    require-specific: true
+    require-explanation: true
+    allow-leading-space: false
+  whitespace:
+    multi-if: true
+    multi-func: true
+
+issues:
+  max-same-issues: 0 # unlimited
+  max-issues-per-linter: 0 # unlimited
+
+  exclude-rules:
+    - path: cmd/
+      linters:
+        - gochecknoglobals # CLIs can reference globals
+        - gochecknoinits # CLIs can init as they are not imported
+        - revive # gets around Cobra Command.RunE lint errors when positional args are not used
+        - wrapcheck # errors don't need to be wrapped in CLIs
+    - path: _test.go
+      linters:
+        - funlen # test function can be very long due to test cases
+        - gochecknoglobals # tests can reference globals
+        - gocognit # test functions can be long/complex
+        - gomnd # there are many magic numbers in tests
+        - maintidx # test functions can be long/complex
+        - wrapcheck # errors don't need to be wrapped in tests
