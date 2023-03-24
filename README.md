@@ -1,0 +1,2 @@
+# budget
+simple budgeting cli
