@@ -10,9 +10,13 @@ run:
 	go run ./main.go
 
 .PHONY: build
-run:
+build:
 	go build .
 
 .PHONY: test
-run:
+test:
 	go test -v ./...
+
+.PHONY: gci
+gci:
+	gci write --skip-generated -s standard -s default .
