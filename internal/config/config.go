@@ -131,9 +131,11 @@ func load(file string, v interface{}) error {
 	if err != nil {
 		return fmt.Errorf("load read file %s: %w", file, err)
 	}
-	err = json.Unmarshal(b, &v)
-	if err != nil {
-		return fmt.Errorf("load unmarshall file %s: %w", file, err)
+	if len(b) > 0 { // cant unmarshall empty files.
+		err = json.Unmarshal(b, &v)
+		if err != nil {
+			return fmt.Errorf("load unmarshall file %s: %w", file, err)
+		}
 	}
 
 	return nil
@@ -143,17 +145,34 @@ func load(file string, v interface{}) error {
 func initDir() error {
 	path, err := getConfigDirPath()
 	if err != nil {
-		return fmt.Errorf("InitConfigDir: %w", err)
+		return fmt.Errorf("InitDir: %w", err)
 	}
 	exists, err := file.Exists(path)
 	if err != nil {
-		return fmt.Errorf("initConfig file check: %w", err)
+		return fmt.Errorf("initConfig dir check: %w", err)
 	}
 	if !exists {
 		err := os.MkdirAll(path, 0755) //nolint:gomnd
 		if err != nil {
 			return fmt.Errorf("InitConfig create dir: %w", err)
 		}
+	}
+	configPath, err := getConfigPath()
+	if err != nil {
+		return fmt.Errorf("init dir create config file: %w", err)
+	}
+	exists, err = file.Exists(configPath)
+	if err != nil {
+		return fmt.Errorf("initConfig config file check: %w", err)
+	}
+	if !exists {
+		f, err := os.Create(configPath)
+		if err != nil {
+			return fmt.Errorf("create: %w", err)
+		}
+		defer func(f *os.File) {
+			_ = f.Close()
+		}(f)
 	}
 
 	return nil
