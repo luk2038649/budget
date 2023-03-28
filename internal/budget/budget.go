@@ -5,33 +5,48 @@ import (
 	"io"
 	"os"
 	"text/tabwriter"
+	"time"
 )
 
-type budget struct {
-	items []budgetItem
+type Budget struct {
+	Name         string
+	Items        []Item
+	CreationDate time.Time
+	LastEdited   time.Time
 }
 
-type budgetItemKind string
+type ItemKind string
 
 const (
-	Expense budgetItemKind = "expense"
-	Income  budgetItemKind = "income"
+	Expense ItemKind = "expense"
+	Income  ItemKind = "income"
 )
 
-type budgetItem struct {
+type Item struct {
 	amount      int
 	frequency   frequency
 	name        string
 	description string
 	key         int
-	kind        budgetItemKind
+	kind        ItemKind
 }
 
-func (b budgetItem) String() string {
+// New creates a new named budget struct
+func New(name string) Budget {
+	b := Budget{
+		Name:         name,
+		CreationDate: time.Now(),
+		LastEdited:   time.Now(),
+		Items:        []Item{},
+	}
+	return b
+}
+
+func (b Item) String() string {
 	return fmt.Sprintf("%s\t%d:\t$d\t%s\n", b.name, b.amount, b.frequency.String())
 }
 
-func (b budget) print() error {
+func (b Budget) print() error {
 	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
 	err := b.printItemsByKind(tw, Income)
 	if err != nil {
@@ -44,8 +59,8 @@ func (b budget) print() error {
 	return nil
 }
 
-func (b budget) printItemsByKind(w io.Writer, k budgetItemKind) error {
-	for _, i := range b.items {
+func (b Budget) printItemsByKind(w io.Writer, k ItemKind) error {
+	for _, i := range b.Items {
 		if i.kind == k {
 			_, err := fmt.Fprintln(w, i.String())
 			if err != nil {
