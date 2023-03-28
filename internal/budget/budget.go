@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const tabWidth = 8
+
 type Budget struct {
 	Name         string
 	Items        []Item
@@ -27,11 +29,10 @@ type Item struct {
 	frequency   frequency
 	name        string
 	description string
-	key         int
 	kind        ItemKind
 }
 
-// New creates a new named budget struct
+// New creates a new named budget struct.
 func New(name string) Budget {
 	b := Budget{
 		Name:         name,
@@ -39,15 +40,16 @@ func New(name string) Budget {
 		LastEdited:   time.Now(),
 		Items:        []Item{},
 	}
+
 	return b
 }
 
 func (b Item) String() string {
-	return fmt.Sprintf("%s\t%d:\t$d\t%s\n", b.name, b.amount, b.frequency.String())
+	return fmt.Sprintf("%s\t%s\t%d:\t$d\t%s\t%s\n", b.kind, b.name, b.amount, b.frequency.String(), b.description)
 }
 
 func (b Budget) print() error {
-	tw := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	tw := tabwriter.NewWriter(os.Stdout, 0, tabWidth, 1, '\t', tabwriter.AlignRight)
 	err := b.printItemsByKind(tw, Income)
 	if err != nil {
 		return fmt.Errorf("print: %w ", err)
@@ -56,6 +58,11 @@ func (b Budget) print() error {
 	if err != nil {
 		return fmt.Errorf("print: %w ", err)
 	}
+	err = tw.Flush()
+	if err != nil {
+		return fmt.Errorf("budget print: %w", err)
+	}
+
 	return nil
 }
 
@@ -68,5 +75,6 @@ func (b Budget) printItemsByKind(w io.Writer, k ItemKind) error {
 			}
 		}
 	}
+
 	return nil
 }
