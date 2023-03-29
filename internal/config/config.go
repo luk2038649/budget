@@ -55,47 +55,58 @@ func dataPathFromName(name string) (string, error) {
 	return path, nil
 }
 
-// Create creates a configuration Item with a budget at the given name in the data directory.
+// Create creates a configuration Item and add it to the config file.
 func Create(name string) error {
-	err := initDir()
+	err := initDirs()
 	if err != nil {
 		return fmt.Errorf("config Create: %w", err)
 	}
-	path, err := dataPathFromName(name)
+	configFilePath, err := getConfigPath()
+	if err != nil {
+		return fmt.Errorf("create: %w", err)
+	}
+	itemDataPath, err := dataPathFromName(name)
 	if err != nil {
 		return fmt.Errorf("create: %w", err)
 	}
 
-	f, err := os.Create(path)
+	c, err := loadConfig()
+	fmt.Println("Length of c.items: ", len(c.Items))
 	if err != nil {
 		return fmt.Errorf("create: %w", err)
 	}
+
+	f, err := os.Create(configFilePath)
+	if err != nil {
+		return fmt.Errorf("create open file: %w", err)
+	}
+
 	defer func(f *os.File) {
 		_ = f.Close()
 	}(f)
 
 	i := Item{
-		DataPath: path,
+		DataPath: itemDataPath,
 		Name:     name,
 		Current:  false,
 	}
-	iBytes, err := json.Marshal(i)
+
+	c.Items = append(c.Items, i)
+	cBytes, err := json.Marshal(c)
 	if err != nil {
-		return fmt.Errorf("config json marshal: %w", err)
+		return fmt.Errorf("create json marshal: %w", err)
 	}
 
-	_, err = f.Write(iBytes)
+	_, err = f.Write(cBytes)
 	if err != nil {
-		fmt.Println()
-
-		return fmt.Errorf("config create write: %w", err)
+		return fmt.Errorf("create write: %w", err)
 	}
-
+	fmt.Println("Config created.")
 	return nil
 }
 
 func Show() error {
-	err := initDir()
+	err := initDirs()
 	if err != nil {
 		return fmt.Errorf("show: %w", err)
 	}
@@ -117,24 +128,56 @@ func loadConfig() (Config, error) {
 	if err != nil {
 		return config, fmt.Errorf("load config: %w", err)
 	}
-	err = load(f, config)
+	b, err := load(f)
 	if err != nil {
 		return config, fmt.Errorf("load config: %w", err)
+	}
+	if len(b) > 0 {
+		err = json.Unmarshal(b, &config)
+		if err != nil {
+			return config, fmt.Errorf("load config: %w", err)
+		}
 	}
 
 	return config, nil
 }
 
-// load file and marshal json to struct.
-func load(file string, v interface{}) error {
+// load file and return json byte slice.
+func load(file string) ([]byte, error) {
 	b, err := os.ReadFile(file)
 	if err != nil {
-		return fmt.Errorf("load read file %s: %w", file, err)
+		return nil, fmt.Errorf("load read file %s: %w", file, err)
 	}
-	if len(b) > 0 { // cant unmarshall empty files.
-		err = json.Unmarshal(b, &v)
+
+	return b, nil
+}
+
+func initDirs() error {
+	err := initConfigDir()
+	if err != nil {
+		return fmt.Errorf("initdirs: %w", err)
+	}
+	err = initDataDir()
+	if err != nil {
+		return fmt.Errorf("initdirs: %w", err)
+	}
+
+	return nil
+}
+
+func initDataDir() error {
+	path, err := getDataPath()
+	if err != nil {
+		return fmt.Errorf("InitData dir: %w", err)
+	}
+	exists, err := file.Exists(path)
+	if err != nil {
+		return fmt.Errorf("initData dir check: %w", err)
+	}
+	if !exists {
+		err := os.MkdirAll(path, 0755) //nolint:gomnd
 		if err != nil {
-			return fmt.Errorf("load unmarshall file %s: %w", file, err)
+			return fmt.Errorf("InitDataDir create dir: %w", err)
 		}
 	}
 
@@ -142,7 +185,7 @@ func load(file string, v interface{}) error {
 }
 
 // initConfigDir checks for existing config directory and creates if needed.
-func initDir() error {
+func initConfigDir() error {
 	path, err := getConfigDirPath()
 	if err != nil {
 		return fmt.Errorf("InitDir: %w", err)
@@ -159,7 +202,7 @@ func initDir() error {
 	}
 	configPath, err := getConfigPath()
 	if err != nil {
-		return fmt.Errorf("init dir create config file: %w", err)
+		return fmt.Errorf("init dir config: %w", err)
 	}
 	exists, err = file.Exists(configPath)
 	if err != nil {
@@ -168,7 +211,7 @@ func initDir() error {
 	if !exists {
 		f, err := os.Create(configPath)
 		if err != nil {
-			return fmt.Errorf("create: %w", err)
+			return fmt.Errorf("intidir config create: %w", err)
 		}
 		defer func(f *os.File) {
 			_ = f.Close()
