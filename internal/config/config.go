@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ const dataPath = "data"
 const configPath = "config"
 const basePath = ".budget"
 const tabWidth = 8
+const configHeaders = "CURRENT\tNAME\tPATH"
 
 type Config struct {
 	Items []Item
@@ -26,6 +28,7 @@ type Item struct {
 
 func (c Config) Print() error {
 	tw := tabwriter.NewWriter(os.Stdout, 0, tabWidth, 1, '\t', tabwriter.AlignRight)
+	_, err := fmt.Fprintln(tw, "CURRENT\tNAME\tPATH")
 	for _, i := range c.Items {
 		_, err := fmt.Fprintln(tw, i.String())
 		if err != nil {
@@ -33,7 +36,7 @@ func (c Config) Print() error {
 		}
 	}
 
-	err := tw.Flush()
+	err = tw.Flush()
 	if err != nil {
 		return fmt.Errorf("config print flush: %w", err)
 	}
@@ -42,7 +45,11 @@ func (c Config) Print() error {
 }
 
 func (i Item) String() string {
-	return fmt.Sprintf("Name: %s\tPath: %s", i.Name, i.DataPath)
+	if i.Current {
+		return fmt.Sprintf("*\t%s\t%s", i.Name, i.DataPath)
+	}
+
+	return fmt.Sprintf("\t%s\t%s", i.Name, i.DataPath)
 }
 
 func dataPathFromName(name string) (string, error) {
@@ -55,27 +62,44 @@ func dataPathFromName(name string) (string, error) {
 	return path, nil
 }
 
-// Create creates a configuration Item and add it to the config file.
-func Create(name string) error {
+// Use sets a given Config Item as current
+func Use(name string) error {
 	err := initDirs()
 	if err != nil {
 		return fmt.Errorf("config Create: %w", err)
 	}
+	c, err := loadConfig()
+	if err != nil {
+		return fmt.Errorf("create: %w", err)
+	}
+	ok := false
+	for idx, i := range c.Items {
+		if i.Name == name {
+			i.Current = true
+			ok = true
+		} else {
+			i.Current = false
+		}
+		c.Items[idx] = i
+	}
+	if !ok {
+		return errors.New("no config found")
+	}
+
+	err = c.save()
+	if err != nil {
+		return fmt.Errorf("use: %w", err)
+	}
+
+	return nil
+}
+
+// save the given config to file.
+func (c Config) save() error {
 	configFilePath, err := getConfigPath()
 	if err != nil {
 		return fmt.Errorf("create: %w", err)
 	}
-	itemDataPath, err := dataPathFromName(name)
-	if err != nil {
-		return fmt.Errorf("create: %w", err)
-	}
-
-	c, err := loadConfig()
-	fmt.Println("Length of c.items: ", len(c.Items))
-	if err != nil {
-		return fmt.Errorf("create: %w", err)
-	}
-
 	f, err := os.Create(configFilePath)
 	if err != nil {
 		return fmt.Errorf("create open file: %w", err)
@@ -84,6 +108,35 @@ func Create(name string) error {
 	defer func(f *os.File) {
 		_ = f.Close()
 	}(f)
+	cBytes, err := json.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("save: %w", err)
+	}
+
+	_, err = f.Write(cBytes)
+	if err != nil {
+		return fmt.Errorf("create write: %w", err)
+	}
+
+	return nil
+}
+
+// Create creates a configuration Item and add it to the config file.
+func Create(name string) error {
+	err := initDirs()
+	if err != nil {
+		return fmt.Errorf("config Create: %w", err)
+	}
+
+	itemDataPath, err := dataPathFromName(name)
+	if err != nil {
+		return fmt.Errorf("create: %w", err)
+	}
+
+	c, err := loadConfig()
+	if err != nil {
+		return fmt.Errorf("create: %w", err)
+	}
 
 	i := Item{
 		DataPath: itemDataPath,
@@ -92,16 +145,18 @@ func Create(name string) error {
 	}
 
 	c.Items = append(c.Items, i)
-	cBytes, err := json.Marshal(c)
-	if err != nil {
-		return fmt.Errorf("create json marshal: %w", err)
+	err = c.save()
+	if len(c.Items) == 1 {
+		err = Use(name)
+		if err != nil {
+			return fmt.Errorf("create: %w", err)
+		}
 	}
-
-	_, err = f.Write(cBytes)
 	if err != nil {
-		return fmt.Errorf("create write: %w", err)
+		return fmt.Errorf("create: %w", err)
 	}
 	fmt.Println("Config created.")
+
 	return nil
 }
 

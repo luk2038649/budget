@@ -4,6 +4,7 @@ Copyright © 2023 Luke Schulz
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"budget/internal/config"
@@ -17,10 +18,15 @@ var createCmd = &cobra.Command{
 	Long: `Create a budget configuration which will be used to store budget
 details to your file system. Name is first arg`,
 	Run: func(cmd *cobra.Command, args []string) {
-		err := config.Create(args[0])
-		if err != nil {
-			log.Println(err)
+		if len(args) > 0 {
+			err := config.Create(args[0])
+			if err != nil {
+				log.Println(err)
+			}
+		} else {
+			fmt.Print(" Must pass in name argument")
 		}
+
 	},
 }
 
