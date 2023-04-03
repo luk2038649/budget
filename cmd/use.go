@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"budget/internal/config"
+	"github.com/luk2038649/budget/internal/config"
 	"github.com/spf13/cobra"
 )
 

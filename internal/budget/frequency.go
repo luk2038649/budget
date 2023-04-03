@@ -1,17 +1,19 @@
 package budget
 
-type frequency int
+import "strings"
+
+type Frequency int
 
 const (
-	Yearly  frequency = 1
-	Monthly frequency = 12
-	Weekly  frequency = 52
-	Daily   frequency = 365
-	Once    frequency = 0 // this might have to be one same as yearly? and rely on repeat flag for calculations.
+	Yearly  Frequency = 1
+	Monthly Frequency = 12
+	Weekly  Frequency = 52
+	Daily   Frequency = 365
+	Once    Frequency = 0 // this might have to be one same as yearly? and rely on repeat flag for calculations.
 	// TODO biweekly? more types?
 )
 
-func (f frequency) String() string {
+func (f Frequency) String() string {
 	switch f {
 	case Yearly:
 		return "yearly"
@@ -28,23 +30,23 @@ func (f frequency) String() string {
 	}
 }
 
-// var (
-//	frequencyMap = map[string]frequency{
-//		"yearly":  Yearly,
-//		"monthly": Monthly,
-//		"weekly":  Weekly,
-//		"daily":   Daily,
-//		"once":    Once,
-//		"y":       Yearly,
-//		"m":       Monthly,
-//		"w":       Weekly,
-//		"d":       Daily,
-//		"o":       Once,
-//	}
-//)
+func frequencyMap() map[string]Frequency {
+	return map[string]Frequency{
+		"yearly":  Yearly,
+		"monthly": Monthly,
+		"weekly":  Weekly,
+		"daily":   Daily,
+		"once":    Once,
+		"y":       Yearly,
+		"m":       Monthly,
+		"w":       Weekly,
+		"d":       Daily,
+		"o":       Once,
+	}
+}
 
-// func parseFrequencyStr(str string) (frequency, bool) {
-//	f, ok := frequencyMap[strings.ToLower(str)]
-//
-//	return f, ok
-//}
+func ParseFrequencyStr(str string) (Frequency, bool) {
+	f, ok := frequencyMap()[strings.ToLower(str)]
+
+	return f, ok
+}

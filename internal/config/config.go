@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"text/tabwriter"
 
-	"budget/internal/file"
+	"github.com/luk2038649/budget/internal/file"
 )
 
 const dataPath = "data"
@@ -28,7 +28,10 @@ type Item struct {
 
 func (c Config) Print() error {
 	tw := tabwriter.NewWriter(os.Stdout, 0, tabWidth, 1, '\t', tabwriter.AlignRight)
-	_, err := fmt.Fprintln(tw, "CURRENT\tNAME\tPATH")
+	_, err := fmt.Fprintln(tw, configHeaders)
+	if err != nil {
+		return fmt.Errorf("print: %w", err)
+	}
 	for _, i := range c.Items {
 		_, err := fmt.Fprintln(tw, i.String())
 		if err != nil {
@@ -62,7 +65,7 @@ func dataPathFromName(name string) (string, error) {
 	return path, nil
 }
 
-// Use sets a given Config Item as current
+// Use sets a given Config Item as current.
 func Use(name string) error {
 	err := initDirs()
 	if err != nil {
@@ -98,11 +101,11 @@ func Use(name string) error {
 func (c Config) save() error {
 	configFilePath, err := getConfigPath()
 	if err != nil {
-		return fmt.Errorf("create: %w", err)
+		return fmt.Errorf("save: %w", err)
 	}
 	f, err := os.Create(configFilePath)
 	if err != nil {
-		return fmt.Errorf("create open file: %w", err)
+		return fmt.Errorf("save create file: %w", err)
 	}
 
 	defer func(f *os.File) {
@@ -177,13 +180,28 @@ func Show() error {
 	return nil
 }
 
+// GetCurrentDataFilePath returns the path to the current config items data file for use in budgeting.
+func GetCurrentDataFilePath() (string, error) {
+	var path string
+	c, err := loadConfig()
+	if err != nil {
+		return path, fmt.Errorf("show: %w", err)
+	}
+	for _, i := range c.Items {
+		if i.Current {
+			return i.DataPath, nil
+		}
+	}
+
+	return path, errors.New("no current config item")
+}
 func loadConfig() (Config, error) {
 	var config = Config{}
 	f, err := getConfigPath()
 	if err != nil {
 		return config, fmt.Errorf("load config: %w", err)
 	}
-	b, err := load(f)
+	b, err := file.Load(f)
 	if err != nil {
 		return config, fmt.Errorf("load config: %w", err)
 	}
@@ -195,16 +213,6 @@ func loadConfig() (Config, error) {
 	}
 
 	return config, nil
-}
-
-// load file and return json byte slice.
-func load(file string) ([]byte, error) {
-	b, err := os.ReadFile(file)
-	if err != nil {
-		return nil, fmt.Errorf("load read file %s: %w", file, err)
-	}
-
-	return b, nil
 }
 
 func initDirs() error {

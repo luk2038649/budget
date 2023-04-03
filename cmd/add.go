@@ -4,7 +4,7 @@ Copyright © 2023 Luke Schulz
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -15,7 +15,10 @@ var addCmd = &cobra.Command{
 	Short: "Add budget item",
 	Long:  `Add budget items of various types to your budget.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("add called")
+		err := cmd.Help()
+		if err != nil {
+			log.Println(err)
+		}
 	},
 }
 
@@ -24,7 +27,12 @@ func init() {
 	addCmd.PersistentFlags().StringP("frequency", "f", "once", "Frequency, choose yearly, monthly, weekly, daily, or once. First initial also accepted as shorthand")
 	addCmd.PersistentFlags().StringP("name", "n", "", "name for this budget item")
 	addCmd.PersistentFlags().StringP("description", "d", "", "Optional longer description")
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	err := addCmd.MarkPersistentFlagRequired("frequency")
+	if err != nil {
+		log.Println(err)
+	}
+	err = addCmd.MarkPersistentFlagRequired("name")
+	if err != nil {
+		log.Println(err)
+	}
 }
