@@ -4,7 +4,7 @@ Copyright © 2023 Luke Schulz
 package cmd
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
 )
@@ -12,28 +12,27 @@ import (
 // addCmd represents the add command.
 var addCmd = &cobra.Command{
 	Use:   "add",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Add budget item",
+	Long:  `Add budget items of various types to your budget.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("add called")
+		err := cmd.Help()
+		if err != nil {
+			log.Println(err)
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(addCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	addCmd.PersistentFlags().StringP("frequency", "f", "once", "Frequency, choose yearly, monthly, weekly, daily, or once. First initial also accepted as shorthand")
+	addCmd.PersistentFlags().StringP("name", "n", "", "name for this budget item")
+	addCmd.PersistentFlags().StringP("description", "d", "", "Optional longer description")
+	err := addCmd.MarkPersistentFlagRequired("frequency")
+	if err != nil {
+		log.Println(err)
+	}
+	err = addCmd.MarkPersistentFlagRequired("name")
+	if err != nil {
+		log.Println(err)
+	}
 }
